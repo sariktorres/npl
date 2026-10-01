@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabaseAdmin';
 import { IMAGES } from '@/lib/cms';
+import { bootstrapData, liveMatchData, auctionRoomData } from '@/lib/serverData';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +44,23 @@ export async function GET(request, { params }) {
       (data || []).forEach((r) => rows.push(cols.map((c) => JSON.stringify(r[c] ?? '')).join(',')));
       return new NextResponse(rows.join('\n'), { status: 200, headers: { 'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename=registrations.csv' } });
     }
+    if (path[0] === 'public' && path[1] === 'bootstrap') return json(await bootstrapData());
+    if (path[0] === 'public' && path[1] === 'live') return json(await liveMatchData());
+    if (path[0] === 'public' && path[1] === 'auction') return json(await auctionRoomData());
+    if (path[0] === 'admin' && path[1] === 'list') {
+      const user = await requireAdmin(request);
+      if (!user) return json({ error: 'Unauthorized' }, 401);
+      const table = path[2];
+      if (!ALLOWED.includes(table)) return json({ error: 'Invalid table' }, 400);
+      const admin = getAdminClient();
+      const orderParam = new URL(request.url).searchParams.get('order');
+      let q = admin.from(table).select('*');
+      if (orderParam) { const [col, dir] = orderParam.split('.'); q = q.order(col, { ascending: dir !== 'desc' }); }
+      else q = q.order('created_at', { ascending: false });
+      const { data, error } = await q;
+      if (error) return json({ error: error.message }, 400);
+      return json({ data: data || [] });
+    }
     return json({ error: 'Not found' }, 404);
   } catch (e) { return json({ error: e.message }, 500); }
 }
@@ -52,6 +70,45 @@ export async function POST(request, { params }) {
   try {
     if (path[0] === 'seed') { const force = new URL(request.url).searchParams.get('force') === '1'; return json(await seed(force)); }
     if (path[0] === 'create-admin') return json(await ensureAdminUser());
+
+    if (path[0] === 'auth' && path[1] === 'login') {
+      const { email, password } = await request.json();
+      const r = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const tok = await r.json();
+      if (!r.ok) return json({ error: tok.error_description || tok.msg || 'Invalid credentials' }, 401);
+      const admin = getAdminClient();
+      let role = 'viewer';
+      if (tok.user?.email === process.env.ADMIN_EMAIL) role = 'admin';
+      else { const { data: prof } = await admin.from('profiles').select('role').eq('id', tok.user?.id).single(); role = prof?.role || 'viewer'; }
+      if (role !== 'admin') return json({ error: 'Not an admin account' }, 403);
+      return json({ access_token: tok.access_token, refresh_token: tok.refresh_token, user: { id: tok.user?.id, email: tok.user?.email }, role });
+    }
+
+    if (path[0] === 'public' && path[1] === 'register') {
+      const body = await request.json();
+      const admin = getAdminClient();
+      const allowed = ['full_name','email','phone','age','role','batting_style','bowling_style','city','experience'];
+      const row = {}; allowed.forEach((k) => { if (body[k] !== undefined && body[k] !== '') row[k] = body[k]; });
+      if (!row.full_name) return json({ error: 'Name required' }, 400);
+      if (row.age) row.age = Number(row.age);
+      row.status = 'pending';
+      const { error } = await admin.from('registrations').insert(row);
+      if (error) return json({ error: error.message }, 400);
+      return json({ ok: true });
+    }
+
+    if (path[0] === 'public' && path[1] === 'bid') {
+      const { player_id, team_id, amount } = await request.json();
+      if (!player_id || !team_id || !amount) return json({ error: 'Missing fields' }, 400);
+      const admin = getAdminClient();
+      const { data, error } = await admin.from('bids').insert({ player_id, team_id, amount: Number(amount) }).select().single();
+      if (error) return json({ error: error.message }, 400);
+      return json({ data });
+    }
 
     if (path[0] === 'admin') {
       const user = await requireAdmin(request);
@@ -110,9 +167,6 @@ export async function DELETE(request, { params }) {
   } catch (e) { return json({ error: e.message }, 500); }
 }
 
-// ---------------------------------------------------------------
-//  ADMIN AUTH USER
-// ---------------------------------------------------------------
 async function ensureAdminUser() {
   const admin = getAdminClient();
   const email = process.env.ADMIN_EMAIL;

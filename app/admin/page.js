@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,16 +27,23 @@ const TABS = [
   { key: 'settings', label: 'Settings', icon: SettingsIcon },
 ];
 
-async function token() { const { data } = await supabase.auth.getSession(); return data?.session?.access_token; }
+function token() { return typeof window !== 'undefined' ? localStorage.getItem('apl_token') : null; }
 async function api(method, path, body) {
-  const t = await token();
+  const t = token();
   const res = await fetch(`/api/${path}`, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` }, body: body ? JSON.stringify(body) : undefined });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || 'Request failed');
   return json;
 }
+async function apiList(table, order) {
+  const t = token();
+  const res = await fetch(`/api/admin/list/${table}${order ? `?order=${order}` : ''}`, { headers: { Authorization: `Bearer ${t}` } });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || 'Failed');
+  return json.data || [];
+}
 async function uploadFile(file) {
-  const t = await token();
+  const t = token();
   const fd = new FormData(); fd.append('file', file);
   const res = await fetch('/api/admin/upload', { method: 'POST', headers: { Authorization: `Bearer ${t}` }, body: fd });
   const json = await res.json();
@@ -50,12 +56,8 @@ export default function AdminPage() {
   const [tab, setTab] = useState('dashboard');
   const [teams, setTeams] = useState([]);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session || null));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    return () => sub.subscription.unsubscribe();
-  }, []);
-  useEffect(() => { if (session) supabase.from('teams').select('*').then(({ data }) => setTeams(data || [])); }, [session, tab]);
+  useEffect(() => { setSession(token() ? { token: token() } : null); }, []);
+  useEffect(() => { if (session) apiList('teams').then(setTeams).catch(() => {}); }, [session, tab]);
 
   if (session === undefined) return <div className="min-h-screen grid place-items-center"><div className="h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin" /></div>;
   if (!session) return <Login />;
@@ -71,7 +73,7 @@ export default function AdminPage() {
         </nav>
         <div className="p-3 border-t border-white/5 space-y-1">
           <a href="/" target="_blank" className="w-full flex items-center gap-3 px-2 py-2 text-sm text-muted-foreground hover:text-foreground"><ExternalLink className="h-4 w-4" /><span className="hidden md:block">View site</span></a>
-          <button onClick={() => supabase.auth.signOut()} className="w-full flex items-center gap-3 px-2 py-2 text-sm text-muted-foreground hover:text-destructive"><LogOut className="h-4 w-4" /><span className="hidden md:block">Sign out</span></button>
+          <button onClick={() => { localStorage.removeItem('apl_token'); setSession(null); }} className="w-full flex items-center gap-3 px-2 py-2 text-sm text-muted-foreground hover:text-destructive"><LogOut className="h-4 w-4" /><span className="hidden md:block">Sign out</span></button>
         </div>
       </aside>
       <main className="flex-1 overflow-y-auto h-screen">
@@ -100,10 +102,15 @@ function Login() {
   const [busy, setBusy] = useState(false);
   const submit = async (e) => {
     e.preventDefault(); setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+      const out = await res.json();
+      if (!res.ok) throw new Error(out.error || 'Login failed');
+      localStorage.setItem('apl_token', out.access_token);
+      toast.success('Welcome back, admin');
+      window.location.reload();
+    } catch (e2) { toast.error(e2.message); }
     setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success('Welcome back, admin');
   };
   return (
     <div className="min-h-screen grid place-items-center stadium-grid p-6">
@@ -125,7 +132,7 @@ function Dashboard({ teams, setTab }) {
   useEffect(() => { (async () => {
     const tbls = ['players','matches','registrations','news','sponsors','gallery'];
     const out = { teams: teams.length };
-    for (const t of tbls) { const { count } = await supabase.from(t).select('id', { count: 'exact', head: true }); out[t] = count || 0; }
+    for (const t of tbls) { try { const rows = await apiList(t); out[t] = rows.length; } catch { out[t] = 0; } }
     setCounts(out);
   })(); }, [teams]);
   const cards = [['teams','Teams',Shield],['players','Players',Users],['matches','Matches',CalendarDays],['registrations','Registrations',UserCheck],['news','News',Newspaper],['sponsors','Sponsors',Handshake]];
@@ -156,7 +163,7 @@ function Resource({ table, title, columns, fields, teams = [], teamNames }) {
   const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const load = () => supabase.from(table).select('*').order('created_at', { ascending: false }).then(({ data }) => setRows(data || []));
+  const load = () => apiList(table).then(setRows).catch(() => setRows([]));
   useEffect(() => { load(); }, [table]);
   const teamName = (id) => teams.find((t) => t.id === id)?.short_name || '—';
   const save = async (payload) => { try { await api('POST', `admin/${table}`, payload); toast.success('Saved'); setOpen(false); setEditing(null); load(); } catch (e) { toast.error(e.message); } };
@@ -221,7 +228,7 @@ function toLocal(iso) { const d = new Date(iso); const off = d.getTimezoneOffset
 function Sections() {
   const [rows, setRows] = useState([]);
   const [edit, setEdit] = useState(null);
-  const load = () => supabase.from('sections').select('*').order('order_index').then(({ data }) => setRows(data || []));
+  const load = () => apiList('sections', 'order_index').then(setRows).catch(() => setRows([]));
   useEffect(() => { load(); }, []);
   const update = async (row, patch) => { try { await api('POST', 'admin/sections', { id: row.id, ...patch }); load(); } catch (e) { toast.error(e.message); } };
   const move = async (i, dir) => { const j = i + dir; if (j < 0 || j >= rows.length) return; const a = rows[i], b = rows[j]; await update(a, { order_index: b.order_index }); await update(b, { order_index: a.order_index }); };
@@ -262,7 +269,7 @@ function Scoring({ teams }) {
   const [sel, setSel] = useState(null);
   const [m, setM] = useState(null);
   const [commentary, setCommentary] = useState('');
-  const load = () => supabase.from('matches').select('*').order('start_time').then(({ data }) => setMatches(data || []));
+  const load = () => apiList('matches', 'start_time').then(setMatches).catch(() => setMatches([]));
   useEffect(() => { load(); }, []);
   useEffect(() => { if (sel) { const found = matches.find((x) => x.id === sel); setM(found ? { ...found } : null); } }, [sel, matches]);
   const tn = (id) => teams.find((t) => t.id === id)?.short_name || '?';
@@ -293,7 +300,13 @@ function fieldsOnly(m) { const { id, created_at, commentary, ...rest } = m; retu
 function Auction({ teams }) {
   const [state, setState] = useState(null);
   const [players, setPlayers] = useState([]);
-  const load = async () => { const [s, p] = await Promise.all([supabase.from('auction_state').select('*').eq('id', 1).maybeSingle(), supabase.from('players').select('*').is('team_id', null).order('name')]); setState(s.data || { id: 1, status: 'idle', increment: 20 }); setPlayers(p.data || []); };
+  const load = async () => {
+    try {
+      const [states, pls] = await Promise.all([apiList('auction_state'), apiList('players')]);
+      setState(states[0] || { id: 1, status: 'idle', increment: 20 });
+      setPlayers((pls || []).filter((p) => !p.team_id));
+    } catch (e) { setState({ id: 1, status: 'idle', increment: 20 }); }
+  };
   useEffect(() => { load(); }, []);
   const saveState = async (patch) => { const next = { ...state, ...patch, id: 1 }; setState(next); try { await api('POST', 'admin/auction_state', next); toast.success('Auction updated'); } catch (e) { toast.error(e.message); } };
   const sellCurrent = async (status) => {
@@ -321,10 +334,10 @@ function Auction({ teams }) {
 // ---------- REGISTRATIONS ----------
 function Registrations() {
   const [rows, setRows] = useState([]);
-  const load = () => supabase.from('registrations').select('*').order('created_at', { ascending: false }).then(({ data }) => setRows(data || []));
+  const load = () => apiList('registrations').then(setRows).catch(() => setRows([]));
   useEffect(() => { load(); }, []);
   const setStatus = async (r, status) => { try { await api('POST', 'admin/registrations', { id: r.id, status }); load(); } catch (e) { toast.error(e.message); } };
-  const exportCsv = async () => { const t = await token(); const res = await fetch('/api/export/registrations', { headers: { Authorization: `Bearer ${t}` } }); const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'registrations.csv'; a.click(); };
+  const exportCsv = async () => { const t = token(); const res = await fetch('/api/export/registrations', { headers: { Authorization: `Bearer ${t}` } }); const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'registrations.csv'; a.click(); };
   return (
     <div>
       <div className="flex items-center justify-between mb-6"><h1 className="font-display text-3xl uppercase">Registrations</h1><Button onClick={exportCsv} variant="outline" className="glass border-white/10"><Download className="h-4 w-4 mr-1" />Export CSV</Button></div>
@@ -338,7 +351,7 @@ function Registrations() {
 // ---------- SETTINGS ----------
 function SettingsPanel() {
   const [s, setS] = useState(null);
-  useEffect(() => { supabase.from('site_settings').select('*').eq('id', 1).maybeSingle().then(({ data }) => setS(data || { id: 1 })); }, []);
+  useEffect(() => { apiList('site_settings').then((rows) => setS(rows[0] || { id: 1 })).catch(() => setS({ id: 1 })); }, []);
   const save = async () => { try { await api('POST', 'admin/site_settings', { ...s, id: 1 }); toast.success('Settings saved'); } catch (e) { toast.error(e.message); } };
   if (!s) return null;
   const field = (k, label) => <div><Label className="text-xs uppercase text-muted-foreground">{label}</Label><Input value={s[k] ?? ''} onChange={(e) => setS({ ...s, [k]: e.target.value })} className="glass border-white/10 mt-1" /></div>;

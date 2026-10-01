@@ -7,8 +7,8 @@ import { initials } from '@/lib/cms';
 export function Reveal({ children, delay = 0, y = 28, className }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={{ y }}
+      whileInView={{ y: 0 }}
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
       className={className}
@@ -35,7 +35,7 @@ export function Stagger({ children, className, delay = 0 }) {
 export function StaggerItem({ children, className, y = 26 }) {
   return (
     <motion.div
-      variants={{ hidden: { opacity: 0, y }, show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } } }}
+      variants={{ hidden: { y }, show: { y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } } }}
       className={className}
     >
       {children}
@@ -60,7 +60,8 @@ export function StatCounter({ value = 0, suffix = '', prefix = '', decimals = 0,
       if (p < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    const fb = setTimeout(() => setN(Number(value) || 0), 1400);
+    return () => { cancelAnimationFrame(raf); clearTimeout(fb); };
   }, [inView, value]);
   return (
     <span ref={ref} className={className}>
@@ -93,7 +94,7 @@ export function Countdown({ target, className }) {
     <div className={cn('flex gap-3 sm:gap-4', className)}>
       {units.map((u) => (
         <div key={u.k} className="glass rounded-xl px-4 py-3 min-w-[70px] sm:min-w-[84px] text-center glow-soft">
-          <motion.div key={t[u.k]} initial={{ y: -14, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.3 }} className="font-num text-4xl sm:text-5xl leading-none text-primary text-glow">
+          <motion.div key={t[u.k]} initial={{ y: -14 }} animate={{ y: 0 }} transition={{ duration: 0.3 }} className="font-num text-4xl sm:text-5xl leading-none text-primary text-glow">
             {String(t[u.k]).padStart(2, '0')}
           </motion.div>
           <div className="mt-1 text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground">{u.label}</div>
@@ -153,7 +154,7 @@ export function WinProbBar({ a, b, probA = 50 }) {
         <span className="text-muted-foreground">{100 - p}% {b}</span>
       </div>
       <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
-        <motion.div initial={{ width: 0 }} whileInView={{ width: p + '%' }} viewport={{ once: true }} transition={{ duration: 1, ease: 'easeOut' }} className="h-full rounded-full bg-gradient-to-r from-primary to-emerald-400 glow-green" />
+        <div style={{ width: p + '%' }} className="h-full rounded-full bg-gradient-to-r from-primary to-emerald-400 glow-green transition-all duration-1000" />
       </div>
     </div>
   );
