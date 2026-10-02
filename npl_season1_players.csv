@@ -1,0 +1,116 @@
+player_name,team,category,base_price_npr,sold_price_npr,role,nationality
+Sandeep Lamichhane,Biratnagar Kings,Marquee,2000000.0,2000000.0,Bowler (Leg-spinner),Nepal
+Lokesh Bam,Biratnagar Kings,A,1000000.0,1500000.0,Wicketkeeper-Batter,Nepal
+Pratish GC,Biratnagar Kings,A,1000000.0,1500000.0,Bowler (Left-arm Medium),Nepal
+Basir Ahamad,Biratnagar Kings,B,500000.0,1000000.0,All-rounder,Nepal
+Rajesh Pulami,Biratnagar Kings,B,500000.0,500000.0,Batter,Nepal
+Jitendra Mukhia,Biratnagar Kings,B,500000.0,500000.0,Bowler (Fast-medium),Nepal
+Anil Kharel,Biratnagar Kings,C,200000.0,500000.0,Bowler (Left-arm Spin),Nepal
+Deepak Bohara,Biratnagar Kings,C,200000.0,200000.0,Batter,Nepal
+Subhash Bhandari,Biratnagar Kings,C,200000.0,200000.0,Bowler (Off-spin),Nepal
+Naren Shrestha,Biratnagar Kings,C,200000.0,200000.0,All-rounder,Nepal
+Martin Guptill,Biratnagar Kings,Overseas,,,Batter,New Zealand
+Aqib Ilyas,Biratnagar Kings,Overseas,,,All-rounder,Oman
+Nicholas Kirton,Biratnagar Kings,Overseas,,,Batter,Canada
+Ismat Alam,Biratnagar Kings,Overseas,,,All-rounder,Oman
+Chris Sole,Biratnagar Kings,Overseas,,,Bowler (Fast),Scotland
+Kushal Malla,Chitwan Rhinos,Marquee,2000000.0,2000000.0,All-rounder,Nepal
+Rijjan Dhakal,Chitwan Rhinos,A,1000000.0,1500000.0,Bowler (Left-arm Medium),Nepal
+Kamal Singh Airee,Chitwan Rhinos,A,1000000.0,1500000.0,Bowler (Fast-medium),Nepal
+Sharad Vesawkar,Chitwan Rhinos,B,500000.0,1000000.0,Batter,Nepal
+Dev Khanal,Chitwan Rhinos,B,500000.0,1000000.0,Batter,Nepal
+Dipesh Kandel,Chitwan Rhinos,B,500000.0,500000.0,All-rounder,Nepal
+Amar Singh Routela,Chitwan Rhinos,B,500000.0,500000.0,All-rounder,Nepal
+Deepak Bohara (Jr),Chitwan Rhinos,C,200000.0,200000.0,Batter,Nepal
+Ranjeet Kumar,Chitwan Rhinos,C,200000.0,200000.0,Bowler,Nepal
+Gautam KC,Chitwan Rhinos,C,200000.0,200000.0,Bowler,Nepal
+Marchant de Lange,Chitwan Rhinos,Overseas,,,Bowler (Fast),South Africa
+Luc Benkenstein,Chitwan Rhinos,Overseas,,,All-rounder,England
+Hassan Eisakhil,Chitwan Rhinos,Overseas,,,Batter,Afghanistan
+Jan Nicol Loftie-Eaton,Chitwan Rhinos,Overseas,,,All-rounder,Namibia
+Sohail Tanvir,Chitwan Rhinos,Overseas,,,Bowler (Left-arm Fast),Pakistan
+Asif Sheikh,Janakpur Bolts,Marquee,2000000.0,2000000.0,Wicketkeeper-Batter,Nepal
+Anil Sah,Janakpur Bolts,A,1000000.0,1500000.0,Wicketkeeper-Batter,Nepal
+Lalit Rajbanshi,Janakpur Bolts,A,1000000.0,1500000.0,Bowler (Left-arm Spin),Nepal
+Rupesh Singh,Janakpur Bolts,B,500000.0,1000000.0,Bowler (Fast-medium),Nepal
+Kishore Mahato,Janakpur Bolts,B,500000.0,1000000.0,Bowler (Medium),Nepal
+Aakash Tripathi,Janakpur Bolts,B,500000.0,500000.0,Batter,Nepal
+Shubh Kansakar,Janakpur Bolts,C,200000.0,200000.0,Batter,Nepal
+Sher Malla,Janakpur Bolts,C,200000.0,200000.0,All-rounder,Nepal
+Hemant Dhami,Janakpur Bolts,C,200000.0,200000.0,Bowler,Nepal
+Arniko Yadav,Janakpur Bolts,C,200000.0,200000.0,All-rounder,Nepal
+James Neesham,Janakpur Bolts,Overseas,,,All-rounder,New Zealand
+Lahiru Milantha,Janakpur Bolts,Overseas,,,Wicketkeeper-Batter,Sri Lanka / USA
+Mohammad Mohsin,Janakpur Bolts,Overseas,,,All-rounder,USA
+Joshua Tromp,Janakpur Bolts,Overseas,,,Batter,USA
+Sompal Kami,Karnali Yaks,Marquee,2000000.0,2000000.0,All-rounder,Nepal
+Gulsan Jha,Karnali Yaks,A,1000000.0,1500000.0,All-rounder,Nepal
+Nandan Yadav,Karnali Yaks,B,500000.0,1100000.0,Bowler,Nepal
+Dev Khanal (Karnali),Karnali Yaks,B,500000.0,800000.0,Batter,Nepal
+Arjun Gharti,Karnali Yaks,B,500000.0,500000.0,Wicketkeeper-Batter,Nepal
+Rit Gautam,Karnali Yaks,C,200000.0,500000.0,Batter,Nepal
+Mousom Dhakal,Karnali Yaks,C,200000.0,200000.0,Bowler (Leg-spinner),Nepal
+Bipin Sharma,Karnali Yaks,C,200000.0,200000.0,All-rounder,Nepal
+Unish Singh,Karnali Yaks,C,200000.0,200000.0,All-rounder,Nepal
+Shikhar Dhawan,Karnali Yaks,Overseas,,,Batter,India
+Chadwick Walton,Karnali Yaks,Overseas,,,Wicketkeeper-Batter,West Indies
+Babar Hayat,Karnali Yaks,Overseas,,,Batter,Hong Kong
+Hussain Talat,Karnali Yaks,Overseas,,,All-rounder,Pakistan
+Zeeshan Maqsood,Karnali Yaks,Overseas,,,All-rounder,Oman
+Karan KC,Kathmandu Gurkhas,Marquee,2000000.0,2000000.0,All-rounder,Nepal
+Bhim Sharki,Kathmandu Gurkhas,A,1000000.0,1500000.0,Batter,Nepal
+Shahab Alam,Kathmandu Gurkhas,A,1000000.0,1500000.0,Bowler (Left-arm Spin),Nepal
+Rashid Khan,Kathmandu Gurkhas,B,500000.0,1000000.0,All-rounder,Nepal
+Pratik Shrestha,Kathmandu Gurkhas,B,500000.0,500000.0,Batter,Nepal
+Raju Rijal,Kathmandu Gurkhas,B,500000.0,500000.0,Wicketkeeper-Batter,Nepal
+Vivek Yadav,Kathmandu Gurkhas,C,200000.0,500000.0,All-rounder,Nepal
+Krishna Karki,Kathmandu Gurkhas,C,200000.0,200000.0,All-rounder,Nepal
+Dipesh Shrestha,Kathmandu Gurkhas,C,200000.0,200000.0,Bowler,Nepal
+Stephen Eskinazi,Kathmandu Gurkhas,Overseas,,,Batter,England
+Dan Douthwaite,Kathmandu Gurkhas,Overseas,,,All-rounder,England
+Michael Levitt,Kathmandu Gurkhas,Overseas,,,Batter,Netherlands
+Gerhard Erasmus,Kathmandu Gurkhas,Overseas,,,All-rounder,Namibia
+Rohit Paudel,Lumbini Lions,Marquee,2000000.0,2000000.0,Batter / Captain,Nepal
+Surya Tamang,Lumbini Lions,A,1000000.0,1500000.0,Bowler (Left-arm Spin),Nepal
+Bibek Yadav,Lumbini Lions,A,1000000.0,1500000.0,All-rounder,Nepal
+Sandeep Jora,Lumbini Lions,B,500000.0,1000000.0,Batter,Nepal
+Ashutosh Ghiraiya,Lumbini Lions,B,500000.0,500000.0,Batter,Nepal
+Tilak Raj Bhandari,Lumbini Lions,B,500000.0,500000.0,Bowler,Nepal
+Durgesh Gupta,Lumbini Lions,C,200000.0,500000.0,Bowler (Left-arm Fast),Nepal
+Arjun Magar,Lumbini Lions,C,200000.0,200000.0,Wicketkeeper-Batter,Nepal
+Dinesh Adhikari,Lumbini Lions,C,200000.0,200000.0,All-rounder,Nepal
+Vikas Agri,Lumbini Lions,C,200000.0,200000.0,Bowler,Nepal
+Ben Cutting,Lumbini Lions,Overseas,,,All-rounder,Australia
+Unmukt Chand,Lumbini Lions,Overseas,,,Batter,USA / India
+Tom Moores,Lumbini Lions,Overseas,,,Wicketkeeper-Batter,England
+Ramon Simmonds,Lumbini Lions,Overseas,,,Bowler (Left-arm Fast),West Indies
+Saad Bin Zafar,Lumbini Lions,Overseas,,,All-rounder,Canada
+Kushal Bhurtel,Pokhara Avengers,Marquee,2000000.0,2000000.0,Batter,Nepal
+Sagar Dhakal,Pokhara Avengers,A,1000000.0,1500000.0,Bowler (Left-arm Spin),Nepal
+Akash Chand,Pokhara Avengers,A,1000000.0,1150000.0,Bowler (Fast-medium),Nepal
+Dilip Nath,Pokhara Avengers,B,500000.0,1000000.0,Wicketkeeper-Batter,Nepal
+Sunam Gautam,Pokhara Avengers,B,500000.0,500000.0,Batter,Nepal
+Narayan Joshi,Pokhara Avengers,B,500000.0,500000.0,All-rounder,Nepal
+Bipin Khatri,Pokhara Avengers,B,500000.0,500000.0,All-rounder,Nepal
+Trit Raj Das,Pokhara Avengers,C,200000.0,200000.0,Batter,Nepal
+Dinesh Kharel,Pokhara Avengers,C,200000.0,200000.0,Batter,Nepal
+Kiran Kumar Thagunna,Pokhara Avengers,C,200000.0,200000.0,Batter,Nepal
+Jimmy Neesham,Pokhara Avengers,Overseas,,,All-rounder,New Zealand
+Andries Gous,Pokhara Avengers,Overseas,,,Wicketkeeper-Batter,USA
+Raymon Reifer,Pokhara Avengers,Overseas,,,All-rounder,West Indies
+Michael Leask,Pokhara Avengers,Overseas,,,All-rounder,Scotland
+Matt Cross,Pokhara Avengers,Overseas,,,Wicketkeeper-Batter,Scotland
+Dipendra Singh Airee,Sudurpaschim Royals,Marquee,2000000.0,2000000.0,All-rounder,Nepal
+Abinash Bohara,Sudurpaschim Royals,A,1000000.0,1500000.0,Bowler (Fast-medium),Nepal
+Aarif Sheikh,Sudurpaschim Royals,A,1000000.0,1500000.0,All-rounder,Nepal
+Binod Bhandari,Sudurpaschim Royals,B,500000.0,1000000.0,Wicketkeeper-Batter,Nepal
+Ishan Pandey,Sudurpaschim Royals,B,500000.0,500000.0,Batter,Nepal
+Naresh Budhayer,Sudurpaschim Royals,B,500000.0,500000.0,Batter,Nepal
+Khadak Bohara,Sudurpaschim Royals,C,200000.0,500000.0,Batter,Nepal
+Amit Shrestha,Sudurpaschim Royals,C,200000.0,200000.0,Batter,Nepal
+Naren Saud,Sudurpaschim Royals,C,200000.0,200000.0,Bowler,Nepal
+Bhojraj Bhatta,Sudurpaschim Royals,C,200000.0,200000.0,All-rounder,Nepal
+Brandon McMullen,Sudurpaschim Royals,Overseas,,,All-rounder,Scotland
+Saif Zaib,Sudurpaschim Royals,Overseas,,,All-rounder,England
+Scott Kuggeleijn,Sudurpaschim Royals,Overseas,,,Bowler (Fast-medium),New Zealand
+Rohan Mustafa,Sudurpaschim Royals,Overseas,,,All-rounder,UAE
