@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { money } from '@/lib/cms';
+import { money, hexToHsl } from '@/lib/cms';
 import { SiteNav, SiteFooter } from '@/components/site/chrome';
 import { TeamBadge, LiveDot, Reveal } from '@/components/site/primitives';
 import { Card } from '@/components/ui/card';
@@ -63,7 +63,7 @@ export default function AuctionPage({ initial }) {
   const upcomingLots = players.filter((p) => p.sold_status === 'available');
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ '--primary': hexToHsl(settings?.accent_color) }}>
       <SiteNav settings={settings} />
       <div className="pt-32 container">
         <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-6"><ArrowLeft className="h-4 w-4" /> Back home</Link>

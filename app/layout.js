@@ -3,11 +3,11 @@ import { Providers } from './providers'
 import { Toaster } from '@/components/ui/sonner'
 
 export const metadata = {
-  title: 'Apex Premier League — Cricket Tournament',
+  title: 'Nepal Premier League — Cricket Tournament',
   description: 'The most cinematic cricket tournament experience. Live scores, auctions, teams, players and more.',
-  keywords: ['cricket', 'tournament', 'league', 'live score', 'auction', 'APL'],
+  keywords: ['cricket', 'tournament', 'league', 'live score', 'auction', 'NPL'],
   openGraph: {
-    title: 'Apex Premier League',
+    title: 'Nepal Premier League',
     description: 'Where Legends Are Forged — live cricket tournament, auctions and realtime scores.',
     type: 'website',
   },

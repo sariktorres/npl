@@ -125,7 +125,7 @@ export function TeamBadge({ team, size = 44, className }) {
   }
   return (
     <div
-      style={{ width: s, height: s, background: `linear-gradient(135deg, ${team?.color || '#39FF14'}, rgba(0,0,0,0.6))` }}
+      style={{ width: s, height: s, background: `linear-gradient(135deg, ${team?.color || 'hsl(var(--primary))'}, rgba(0,0,0,0.6))` }}
       className={cn('rounded-full grid place-items-center font-display font-bold text-black ring-1 ring-white/10 shrink-0', className)}
     >
       <span style={{ fontSize: s * 0.36 }}>{initials(team?.short_name || team?.name || '?')}</span>

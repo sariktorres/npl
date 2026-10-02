@@ -16,13 +16,13 @@ export function SiteNav({ settings }) {
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
-  const name = settings?.tournament_name || 'Apex Premier League';
+  const name = settings?.tournament_name || 'Nepal Premier League';
   return (
     <header className={cn('fixed inset-x-0 top-0 z-50 transition-all duration-300', scrolled ? 'glass-strong border-b border-white/5 py-3' : 'py-5')}>
       <nav className="container flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 group">
           <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground glow-green">
-            <Zap className="h-5 w-5" fill="currentColor" />
+            {settings?.logo_url ? <img src={settings.logo_url} alt="" className="h-full w-full rounded-lg object-contain" /> : <Zap className="h-5 w-5" fill="currentColor" />}
           </span>
           <span className="font-display text-lg font-bold uppercase tracking-wide leading-none">
             {name.split(' ')[0]}<span className="text-primary">{name.split(' ').slice(1).join(' ') ? ' ' + name.split(' ').slice(1).join(' ') : ''}</span>
@@ -70,7 +70,7 @@ export function SiteNav({ settings }) {
 }
 
 export function SiteFooter({ settings }) {
-  const name = settings?.tournament_name || 'Apex Premier League';
+  const name = settings?.tournament_name || 'Nepal Premier League';
   const socials = [Instagram, Twitter, Youtube, Facebook];
   return (
     <footer className="relative border-t border-white/5 mt-24 stadium-grid">
@@ -78,7 +78,7 @@ export function SiteFooter({ settings }) {
         <div className="grid gap-10 md:grid-cols-4">
           <div className="md:col-span-2">
             <div className="flex items-center gap-2.5 mb-4">
-              <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground"><Zap className="h-5 w-5" fill="currentColor" /></span>
+              <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground">{settings?.logo_url ? <img src={settings.logo_url} alt="" className="h-full w-full rounded-lg object-contain" /> : <Zap className="h-5 w-5" fill="currentColor" />}</span>
               <span className="font-display text-lg font-bold uppercase">{name}</span>
             </div>
             <p className="text-muted-foreground max-w-sm text-sm leading-relaxed">{settings?.tagline || 'Where Legends Are Forged. Experience the most cinematic cricket tournament, live.'}</p>

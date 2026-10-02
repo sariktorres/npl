@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { IMAGES, money, fmtOvers, fmtDate, fmtTime } from '@/lib/cms';
+import { IMAGES, money, fmtOvers, fmtDate, fmtTime, hexToHsl } from '@/lib/cms';
 import { Reveal, Stagger, StaggerItem, StatCounter, Countdown, SectionHeading, TeamBadge, LiveDot, WinProbBar } from '@/components/site/primitives';
 import { SiteNav, SiteFooter } from '@/components/site/chrome';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { ChevronDown, Trophy, Gavel, ArrowRight, MapPin, Flame, Radio, Star } from 'lucide-react';
+import { Gavel, ArrowRight, MapPin, Flame, Radio, Star } from 'lucide-react';
 
 export default function App({ initial }) {
   const [loading, setLoading] = useState(!initial);
@@ -64,9 +64,8 @@ export default function App({ initial }) {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="home-page min-h-screen" style={{ '--season-primary': hexToHsl(data.settings?.accent_color) }}>
       <SiteNav settings={data.settings} />
-      <Ticker live={live} results={results} teamById={teamById} />
       <main>{data.sections.map(render)}</main>
       <SiteFooter settings={data.settings} />
     </div>
@@ -75,7 +74,7 @@ export default function App({ initial }) {
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen grid place-items-center stadium-grid">
+    <div className="home-page min-h-screen grid place-items-center stadium-grid">
       <div className="flex flex-col items-center gap-4">
         <div className="h-14 w-14 rounded-full border-2 border-primary border-t-transparent animate-spin glow-green" />
         <p className="font-display uppercase tracking-[0.3em] text-sm text-muted-foreground">Loading the Arena…</p>
@@ -84,55 +83,55 @@ function LoadingScreen() {
   );
 }
 
-function Ticker({ live, results, teamById }) {
-  const items = [];
-  if (live) items.push(`\uD83D\uDD34 LIVE · ${teamById(live.team_a)?.short_name} ${live.team_a_runs}/${live.team_a_wickets} (${fmtOvers(live.team_a_overs)}) vs ${teamById(live.team_b)?.short_name}`);
-  results.slice(-5).forEach((r) => items.push(`\u2705 ${r.result}`));
-  if (items.length === 0) items.push('Welcome to the Apex Premier League 2025');
-  const row = [...items, ...items];
-  return (
-    <div className="fixed top-[60px] md:top-[68px] inset-x-0 z-40 border-y border-white/5 bg-primary/10 backdrop-blur-md overflow-hidden">
-      <div className="flex whitespace-nowrap animate-ticker py-1.5">
-        {row.map((t, i) => <span key={i} className="mx-6 text-xs font-medium text-foreground/90">{t}</span>)}
-      </div>
-    </div>
-  );
-}
-
 function Hero({ s, settings, nextMatch, teamById }) {
-  const name = s.title || settings?.tournament_name || 'APEX PREMIER LEAGUE';
+  const name = s.title || settings?.tournament_name || 'NEPAL PREMIER LEAGUE';
   const words = name.split(' ');
+  const seasonLabel = settings?.season || '2025';
+  const badge = (s.content?.badge || `Season ${seasonLabel}`).replace(/Season\s+\d{4}/i, `Season ${seasonLabel}`);
   return (
-    <section className="relative min-h-[100svh] flex items-center overflow-hidden stadium-grid pt-28">
-      <div className="absolute inset-0">
-        <img src={IMAGES.hero[0]} alt="stadium" className="h-full w-full object-cover opacity-40 mask-fade-b" />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-background/70 to-background" />
-      </div>
-      <motion.div className="absolute right-[8%] top-[22%] hidden md:block" animate={{ y: [0, -24, 0] }} transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}>
-        <div className="h-24 w-24 rounded-full bg-gradient-to-br from-primary to-emerald-600 glow-green opacity-80" style={{ boxShadow: '0 0 80px rgba(57,255,20,0.5)' }} />
-      </motion.div>
-      <div className="container relative z-10">
-        <motion.div initial={{ y: 20 }} animate={{ y: 0 }} transition={{ duration: 0.7 }}>
-          <Badge className="mb-6 bg-primary/15 text-primary border border-primary/30 hover:bg-primary/15 uppercase tracking-widest text-[11px] py-1.5 px-3">{s.content?.badge || 'Season 2025'}</Badge>
-        </motion.div>
-        <h1 className="font-display font-bold uppercase leading-[0.9] tracking-tight text-6xl sm:text-7xl md:text-8xl lg:text-9xl">
-          {words.map((w, i) => (
-            <motion.span key={i} initial={{ y: 40 }} animate={{ y: 0 }} transition={{ duration: 0.6, delay: 0.15 + i * 0.1 }} className={`block ${i === words.length - 1 ? 'text-primary text-glow' : ''}`}>{w}</motion.span>
-          ))}
-        </h1>
-        <motion.p initial={{ y: 10 }} animate={{ y: 0 }} transition={{ delay: 0.6 }} className="mt-6 max-w-md text-lg text-muted-foreground">{s.subtitle || settings?.tagline}</motion.p>
-        <motion.div initial={{ y: 16 }} animate={{ y: 0 }} transition={{ delay: 0.75 }} className="mt-8 flex flex-wrap gap-3">
-          <Link href="/#register"><Button size="lg" className="font-semibold text-base glow-green h-12 px-7">{s.content?.cta_primary || 'Register Now'} <ArrowRight className="ml-1 h-4 w-4" /></Button></Link>
-          <Link href="/live"><Button size="lg" variant="outline" className="font-semibold text-base h-12 px-7 border-white/15 glass"><Radio className="mr-1 h-4 w-4 text-primary" /> {s.content?.cta_secondary || 'Watch Live'}</Button></Link>
-        </motion.div>
-        {nextMatch && (
-          <motion.div initial={{ y: 10 }} animate={{ y: 0 }} transition={{ delay: 0.9 }} className="mt-10">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3">Next Match · {teamById(nextMatch.team_a)?.short_name} vs {teamById(nextMatch.team_b)?.short_name}</p>
-            <Countdown target={nextMatch.start_time} />
+    <section className="home-hero stadium-grid relative overflow-hidden">
+      <div className="container home-hero__layout relative z-10">
+        <div className="home-hero__copy">
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+            <Badge className="mb-5 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/10 uppercase tracking-widest text-[11px] py-1.5 px-3">{badge}</Badge>
           </motion.div>
-        )}
+          <h1 className="home-hero__title font-display font-bold uppercase leading-[0.92]">
+            {words.map((w, i) => (
+              <motion.span key={i} initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.12 + i * 0.09 }} className={`block ${i === words.length - 1 ? 'text-primary' : ''}`}>{w}</motion.span>
+            ))}
+          </h1>
+          <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.48 }} className="mt-6 max-w-xl text-lg text-muted-foreground">{s.subtitle || settings?.tagline}</motion.p>
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="mt-8 flex flex-wrap gap-3">
+            <Link href="/#register"><Button size="lg" className="font-semibold text-base glow-green h-12 px-7">{s.content?.cta_primary || 'Register Now'} <ArrowRight className="ml-1 h-4 w-4" /></Button></Link>
+            <Link href="/live"><Button size="lg" variant="outline" className="font-semibold text-base h-12 px-7 border-white/15 glass"><Radio className="mr-1 h-4 w-4 text-primary" /> {s.content?.cta_secondary || 'Watch Live'}</Button></Link>
+          </motion.div>
+          {nextMatch && (
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.76 }} className="mt-9">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3">Next match · {teamById(nextMatch.team_a)?.short_name} vs {teamById(nextMatch.team_b)?.short_name}</p>
+              <Countdown target={nextMatch.start_time} />
+            </motion.div>
+          )}
+        </div>
+        <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, delay: 0.2 }} className="home-hero__visual">
+          <img src={IMAGES.hero[0]} alt="Cricket match under stadium lights" className="home-hero__photo" />
+          <div className="home-hero__photo-shade" />
+          <div className="home-hero__caption">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em]"><Flame className="h-4 w-4 text-amber-300" /> Every ball has a story</span>
+            <span className="mt-2 block font-display text-2xl uppercase">The season starts here</span>
+          </div>
+          <motion.div className="home-hero__match-card glass-strong" animate={{ y: [0, -5, 0] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}>
+            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">{nextMatch ? 'Coming up' : 'Play together'}</span>
+            {nextMatch ? (
+              <>
+                <span className="mt-2 block font-display text-lg uppercase leading-tight">{teamById(nextMatch.team_a)?.short_name} <span className="text-muted-foreground">vs</span> {teamById(nextMatch.team_b)?.short_name}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">{fmtDate(nextMatch.start_time)} · {fmtTime(nextMatch.start_time)}</span>
+              </>
+            ) : (
+              <span className="mt-2 block font-display text-lg uppercase leading-tight">Find your team. Feel the game.</span>
+            )}
+          </motion.div>
+        </motion.div>
       </div>
-      <motion.div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-muted-foreground" animate={{ y: [0, 8, 0] }} transition={{ duration: 1.8, repeat: Infinity }}><ChevronDown /></motion.div>
     </section>
   );
 }
@@ -194,7 +193,10 @@ function TeamScore({ team, runs, wkts, overs, batting, right }) {
 }
 
 function FixturesSection({ s, upcoming, results, teamById }) {
-  const Row = ({ m }) => (
+  const Row = ({ m }) => {
+    const hasScore = [m.team_a_runs, m.team_a_wickets, m.team_b_runs, m.team_b_wickets].some((value) => Number(value || 0) > 0);
+    const winnerName = teamById(m.winner_team)?.name;
+    return (
     <StaggerItem>
       <Card className="glass p-4 flex items-center justify-between gap-4 hover:border-primary/30 transition-colors">
         <div className="flex items-center gap-3 min-w-0">
@@ -202,8 +204,9 @@ function FixturesSection({ s, upcoming, results, teamById }) {
           <span className="font-display uppercase text-sm hidden sm:block">{teamById(m.team_a)?.short_name}</span>
         </div>
         <div className="text-center shrink-0">
+          {(m.stage || m.match_day) && <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-primary">{[m.stage, m.match_day].filter(Boolean).join(' · ')}</div>}
           {m.status === 'completed' ? (
-            <div className="text-xs"><div className="font-num text-lg">{m.team_a_runs}/{m.team_a_wickets} · {m.team_b_runs}/{m.team_b_wickets}</div><div className="text-primary max-w-[180px] truncate">{m.result}</div></div>
+            <div className="text-xs">{hasScore && <div className="font-num text-lg">{m.team_a_runs}/{m.team_a_wickets} · {m.team_b_runs}/{m.team_b_wickets}</div>}<div className="text-primary max-w-[180px] truncate">{m.result || (winnerName ? `${winnerName} won` : 'Completed')}</div></div>
           ) : (
             <div className="text-xs text-muted-foreground"><div className="font-display text-sm text-foreground">{fmtDate(m.start_time)}</div><div>{fmtTime(m.start_time)}</div></div>
           )}
@@ -214,7 +217,8 @@ function FixturesSection({ s, upcoming, results, teamById }) {
         </div>
       </Card>
     </StaggerItem>
-  );
+    );
+  };
   return (
     <Band id="fixtures">
       <Reveal><SectionHeading eyebrow="Schedule" title={s.title} subtitle={s.subtitle} /></Reveal>
@@ -256,14 +260,14 @@ function PointsSection({ s, teams }) {
 function TeamsSection({ s, teams, players }) {
   return (
     <Band id="teams">
-      <Reveal><SectionHeading eyebrow="Franchises" title={s.title} subtitle={s.subtitle} /></Reveal>
+      <Reveal><div className="flex flex-wrap items-end justify-between gap-4"><SectionHeading eyebrow="Franchises" title={s.title} subtitle={s.subtitle} /><Link href="/teams"><Button variant="outline" className="glass border-white/15">Explore every team <ArrowRight className="ml-2 h-4 w-4" /></Button></Link></div></Reveal>
       <Stagger className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {teams.map((t) => {
           const count = players.filter((p) => p.team_id === t.id).length;
           return (
             <StaggerItem key={t.id}>
               <motion.div whileHover={{ y: -6 }} transition={{ type: 'spring', stiffness: 300 }}>
-                <Card className="glass relative overflow-hidden group" style={{ borderColor: t.color + '30' }}>
+                <Link href={`/teams/${t.id}`} className="block"><Card className="glass relative overflow-hidden group" style={{ borderColor: (t.color || '#df503f') + '30' }}>
                   <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full blur-2xl opacity-30" style={{ background: t.color }} />
                   <div className="p-6">
                     <div className="flex items-center gap-4"><TeamBadge team={t} size={64} /><div><h3 className="font-display text-2xl uppercase leading-none">{t.name}</h3><p className="text-xs text-muted-foreground mt-1">{t.home_city}</p></div></div>
@@ -274,7 +278,7 @@ function TeamsSection({ s, teams, players }) {
                     </div>
                     <div className="mt-4 text-xs text-muted-foreground">Captain · <span className="text-foreground">{t.captain}</span></div>
                   </div>
-                </Card>
+                </Card></Link>
               </motion.div>
             </StaggerItem>
           );
@@ -294,8 +298,9 @@ function PlayersSection({ s, players, teamById }) {
           return (
             <StaggerItem key={p.id}>
               <motion.div whileHover={{ y: -5 }}>
+                <Link href={`/players/${p.id}`} aria-label={`View ${p.name}'s player profile`} className="block">
                 <Card className="glass overflow-hidden group">
-                  <div className="relative h-40 grid place-items-center" style={{ background: `radial-gradient(circle at 50% 30%, ${team?.color || '#39FF14'}33, transparent 70%)` }}>
+                  <div className="relative h-40 grid place-items-center" style={{ background: `radial-gradient(circle at 50% 30%, ${team?.color ? `${team.color}33` : 'hsl(var(--primary) / 0.2)'}, transparent 70%)` }}>
                     <TeamBadge team={team} size={72} />
                     {p.is_marquee && <Badge className="absolute top-2 right-2 bg-primary/90 text-primary-foreground text-[10px]"><Star className="h-3 w-3 mr-1" />Marquee</Badge>}
                   </div>
@@ -309,6 +314,7 @@ function PlayersSection({ s, players, teamById }) {
                     </div>
                   </div>
                 </Card>
+                </Link>
               </motion.div>
             </StaggerItem>
           );

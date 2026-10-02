@@ -17,7 +17,7 @@ create table if not exists public.profiles (
 -- ---------- SITE SETTINGS (singleton row id=1) ----------
 create table if not exists public.site_settings (
   id int primary key default 1,
-  tournament_name text default 'Apex Premier League',
+  tournament_name text default 'Nepal Premier League',
   tagline text default 'Where Legends Are Forged',
   logo_url text,
   accent_color text default '#39FF14',
@@ -203,7 +203,7 @@ create table if not exists public.news (
   excerpt text,
   body text,
   cover_url text,
-  author text default 'APL Media',
+  author text default 'NPL Media',
   published boolean default true,
   created_at timestamptz default now()
 );
