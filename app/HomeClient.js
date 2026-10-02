@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
@@ -50,7 +49,7 @@ export default function App({ initial }) {
       case 'hero': return <Hero key={s.id} s={s} settings={data.settings} nextMatch={nextMatch} teamById={teamById} />;
       case 'countdown': return nextMatch ? <CountdownBand key={s.id} s={s} nextMatch={nextMatch} teamById={teamById} /> : null;
       case 'live': return <LiveSection key={s.id} s={s} live={live} teamById={teamById} />;
-      case 'fixtures': return <FixturesSection key={s.id} s={s} upcoming={upcoming} results={results} teamById={teamById} />;
+      case 'fixtures': return <FixturesSection key={s.id} s={s} upcoming={upcoming.slice(0, 10)} totalUpcoming={upcoming.length} teamById={teamById} />;
       case 'points': return <PointsSection key={s.id} s={s} teams={sortedTeams} />;
       case 'teams': return <TeamsSection key={s.id} s={s} teams={[...data.teams].sort((a,b)=>a.order_index-b.order_index)} players={data.players} />;
       case 'players': return <PlayersSection key={s.id} s={s} players={starPlayers} teamById={teamById} />;
@@ -192,7 +191,7 @@ function TeamScore({ team, runs, wkts, overs, batting, right }) {
   );
 }
 
-function FixturesSection({ s, upcoming, results, teamById }) {
+function FixturesSection({ s, upcoming, totalUpcoming, teamById }) {
   const Row = ({ m }) => {
     const hasScore = [m.team_a_runs, m.team_a_wickets, m.team_b_runs, m.team_b_wickets].some((value) => Number(value || 0) > 0);
     const winnerName = teamById(m.winner_team)?.name;
@@ -222,11 +221,9 @@ function FixturesSection({ s, upcoming, results, teamById }) {
   return (
     <Band id="fixtures">
       <Reveal><SectionHeading eyebrow="Schedule" title={s.title} subtitle={s.subtitle} /></Reveal>
-      <Tabs defaultValue="upcoming" className="mt-8">
-        <TabsList className="glass"><TabsTrigger value="upcoming">Upcoming</TabsTrigger><TabsTrigger value="results">Results</TabsTrigger></TabsList>
-        <TabsContent value="upcoming"><Stagger className="grid gap-3 mt-5">{upcoming.map((m) => <Row key={m.id} m={m} />)}</Stagger></TabsContent>
-        <TabsContent value="results"><Stagger className="grid gap-3 mt-5">{results.map((m) => <Row key={m.id} m={m} />)}</Stagger></TabsContent>
-      </Tabs>
+      <Stagger className="mt-8 grid gap-3">{upcoming.map((m) => <Row key={m.id} m={m} />)}</Stagger>
+      {!upcoming.length && <Card className="glass mt-6 p-7 text-center text-muted-foreground">No upcoming fixtures are scheduled yet.</Card>}
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Showing {upcoming.length} of {totalUpcoming} upcoming matches</p><Link href="/matches"><Button variant="outline" className="glass border-white/15">See all matches <ArrowRight className="ml-2 h-4 w-4" /></Button></Link></div>
     </Band>
   );
 }

@@ -216,6 +216,30 @@
   color: hsl(var(--foreground));
 }
 
+.team-detail__match-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(100px, 0.8fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.team-detail__match-team {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.team-detail__match-center { min-width: 0; text-align: center; }
+
+@media (max-width: 520px) {
+  .team-detail__match-layout { grid-template-columns: minmax(0, 1fr) minmax(74px, 0.8fr) minmax(0, 1fr); gap: 7px; }
+  .team-detail__match-team { gap: 6px; }
+  .team-detail__match-team img,
+  .team-detail__match-team > div:first-child { width: 34px !important; height: 34px !important; }
+  .team-detail__match-team .font-display { font-size: 0.8rem; }
+}
+
 .team-detail__next-match {
   min-width: min(100%, 320px);
   padding: 18px 20px;

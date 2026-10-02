@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { LayoutDashboard, Layers, Users, Shield, CalendarDays, CalendarRange, Radio, Gavel, UserCheck, Image as ImageIcon, Newspaper, Handshake, Settings as SettingsIcon, LogOut, Plus, Pencil, Trash2, Eye, EyeOff, ArrowUp, ArrowDown, Download, Upload, Zap, ExternalLink, MapPin, Trophy, BadgeCheck, FileUp, FileSpreadsheet, X, Copy } from 'lucide-react';
+import { LayoutDashboard, Layers, Users, Shield, CalendarDays, CalendarRange, Radio, Gavel, UserCheck, Image as ImageIcon, Newspaper, Handshake, Settings as SettingsIcon, LogOut, Plus, Pencil, Trash2, Eye, EyeOff, ArrowUp, ArrowDown, Download, Upload, Zap, ExternalLink, MapPin, Trophy, BadgeCheck, FileUp, FileSpreadsheet, X, Copy, ListChecks, Check, Search } from 'lucide-react';
 import { TeamBadge } from '@/components/site/primitives';
 import { deriveTeamStats, teamLeaders } from '@/lib/teamStats';
 
@@ -22,6 +22,7 @@ const TABS = [
   { key: 'sections', label: 'Homepage', icon: Layers },
   { key: 'teams', label: 'Teams', icon: Shield },
   { key: 'players', label: 'Players', icon: Users },
+  { key: 'player-review', label: 'Player Review', icon: ListChecks },
   { key: 'matches', label: 'Matches', icon: CalendarDays },
   { key: 'scoring', label: 'Live Scoring', icon: Radio },
   { key: 'auction', label: 'Auction', icon: Gavel },
@@ -81,8 +82,8 @@ export default function AdminPage({ initialTab = 'dashboard' }) {
           {TABS.map((t) => {
             const Icon = t.icon;
             const className = `w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${tab === t.key ? 'bg-primary/15 text-primary border-r-2 border-primary' : 'text-muted-foreground hover:text-foreground hover:bg-white/5'}`;
-            return t.key === 'teams'
-              ? <Link key={t.key} href="/admin/teams" className={className}><Icon className="h-4 w-4 shrink-0" /><span className="hidden md:block">{t.label}</span></Link>
+            return t.key === 'teams' || t.key === 'player-review'
+              ? <Link key={t.key} href={t.key === 'teams' ? '/admin/teams' : '/admin/player-review'} className={className}><Icon className="h-4 w-4 shrink-0" /><span className="hidden md:block">{t.label}</span></Link>
               : <button key={t.key} onClick={() => setTab(t.key)} className={className}><Icon className="h-4 w-4 shrink-0" /><span className="hidden md:block">{t.label}</span></button>;
           })}
         </nav>
@@ -98,6 +99,7 @@ export default function AdminPage({ initialTab = 'dashboard' }) {
           {tab === 'sections' && <Sections />}
           {tab === 'teams' && <TeamsWorkspace teams={teams} onChanged={() => apiList('teams').then(setTeams).catch(() => {})} />}
           {tab === 'players' && <PlayersWorkspace teams={teams} />}
+          {tab === 'player-review' && <PlayerReviewWorkspace teams={teams} />}
           {tab === 'matches' && <MatchesWorkspace teams={teams} />}
           {tab === 'scoring' && <Scoring teams={teams} />}
           {tab === 'auction' && <Auction teams={teams} />}
@@ -235,7 +237,7 @@ function SeasonCard({ season, active, onActivate, onSave }) {
 }
 
 function Login() {
-  const [email, setEmail] = useState('admin@cricket.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async (e) => {
@@ -255,11 +257,11 @@ function Login() {
       <Card className="glass-strong p-8 w-full max-w-sm glow-soft">
         <div className="flex items-center gap-2 mb-6"><span className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground"><Zap className="h-5 w-5" fill="currentColor" /></span><span className="font-display text-xl uppercase font-bold">Admin Login</span></div>
         <form onSubmit={submit} className="space-y-4">
-          <div><Label className="text-xs uppercase text-muted-foreground">Email</Label><Input value={email} onChange={(e) => setEmail(e.target.value)} className="glass border-white/10 mt-1" /></div>
-          <div><Label className="text-xs uppercase text-muted-foreground">Password</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="glass border-white/10 mt-1" /></div>
+          <div><Label className="text-xs uppercase text-muted-foreground">Supabase account email</Label><Input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} className="glass border-white/10 mt-1" /></div>
+          <div><Label className="text-xs uppercase text-muted-foreground">Password</Label><Input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="glass border-white/10 mt-1" /></div>
           <Button type="submit" disabled={busy} className="w-full font-semibold glow-green">{busy ? 'Signing in…' : 'Sign In'}</Button>
         </form>
-        <p className="text-xs text-muted-foreground mt-4 text-center">Default: admin@cricket.com / Admin@12345</p>
+        <p className="text-xs text-muted-foreground mt-4 text-center">Sign in with a Supabase account assigned the admin role.</p>
       </Card>
     </div>
   );
@@ -412,6 +414,7 @@ function PlayersWorkspace({ teams }) {
   const [seasons, setSeasons] = useState([]);
   const [sourceSeasonId, setSourceSeasonId] = useState('');
   const [copyBusy, setCopyBusy] = useState(false);
+  const [removeBusy, setRemoveBusy] = useState(false);
   const [fileName, setFileName] = useState('');
   const [rows, setRows] = useState([]);
   const [errors, setErrors] = useState([]);
@@ -423,6 +426,7 @@ function PlayersWorkspace({ teams }) {
       setSourceSeasonId((current) => current || rows.find((season) => !season.is_active)?.id || '');
     }).catch((error) => toast.error(error.message));
   }, []);
+  const activeSeason = seasons.find((season) => season.is_active);
   const sourceSeasons = seasons.filter((season) => !season.is_active);
 
   const chooseFile = async (event) => {
@@ -472,9 +476,30 @@ function PlayersWorkspace({ teams }) {
     setCopyBusy(false);
   };
 
+  const removeAllPlayers = async () => {
+    setRemoveBusy(true);
+    try {
+      const currentPlayers = await apiList('players');
+      if (!currentPlayers.length) {
+        toast.info('There are no players in the active season.');
+        setRemoveBusy(false);
+        return;
+      }
+      const seasonName = activeSeason?.name || 'active season';
+      if (!confirm(`Permanently remove all ${currentPlayers.length} players from ${seasonName}? Players in other seasons are not affected. Auction bids for these players will also be deleted.`)) {
+        setRemoveBusy(false);
+        return;
+      }
+      const result = await api('DELETE', 'admin/players/season');
+      toast.success(`${result.deleted} players removed from ${seasonName}`);
+      setReloadKey((current) => current + 1);
+    } catch (error) { toast.error(error.message); }
+    setRemoveBusy(false);
+  };
+
   return (
     <div>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-4"><div><h1 className="font-display text-3xl uppercase mb-1">Player Roster</h1><p className="text-muted-foreground">Import players into their active-season teams, then complete their photos and stats.</p></div><div className="flex flex-wrap gap-2"><Button variant="outline" onClick={downloadPlayerCsvTemplate} className="glass border-white/10"><Download className="mr-1 h-4 w-4" />CSV template</Button><label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md border border-white/10 glass px-3 text-sm font-medium"><FileUp className="h-4 w-4" />Choose players CSV<input type="file" accept=".csv,text/csv" className="sr-only" onChange={chooseFile} /></label></div></div>
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-4"><div><h1 className="font-display text-3xl uppercase mb-1">Player Roster</h1><p className="text-muted-foreground">Import players into their active-season teams, then complete their photos and stats.</p></div><div className="flex flex-wrap gap-2"><Button variant="destructive" onClick={removeAllPlayers} disabled={removeBusy || !activeSeason}><Trash2 className="mr-1 h-4 w-4" />{removeBusy ? 'Removing…' : 'Remove all players'}</Button><Button variant="outline" onClick={downloadPlayerCsvTemplate} className="glass border-white/10"><Download className="mr-1 h-4 w-4" />CSV template</Button><label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md border border-white/10 glass px-3 text-sm font-medium"><FileUp className="h-4 w-4" />Choose players CSV<input type="file" accept=".csv,text/csv" className="sr-only" onChange={chooseFile} /></label></div></div>
       <Card className="glass mb-5 flex flex-wrap items-center justify-between gap-3 p-4"><div><h2 className="font-display text-lg uppercase">Copy roster from a previous season</h2><p className="mt-1 text-xs text-muted-foreground">Copies all players into matching active-season teams. Stats and sale prices reset; team profiles must already be copied.</p></div><div className="flex flex-wrap gap-2"><Select value={sourceSeasonId || 'none'} onValueChange={(value) => setSourceSeasonId(value === 'none' ? '' : value)}><SelectTrigger className="glass border-white/10 min-w-48"><SelectValue placeholder="Choose source season" /></SelectTrigger><SelectContent><SelectItem value="none">Choose source season</SelectItem>{sourceSeasons.map((season) => <SelectItem key={season.id} value={season.id}>{season.name}</SelectItem>)}</SelectContent></Select><Button disabled={copyBusy || !sourceSeasonId} onClick={copyPreviousPlayers} variant="outline" className="glass border-white/10"><Copy className="mr-1 h-4 w-4" />{copyBusy ? 'Copying…' : 'Copy full roster'}</Button></div></Card>
       <Card className="glass mb-5 p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display text-lg uppercase">Roster import</h2><p className="mt-1 text-xs text-muted-foreground">Team accepts its name or short code. NPR amounts are converted to lakhs for the auction system.</p></div><div className="flex items-center gap-2"><Switch id="replace-player-roster" checked={replaceExisting} onCheckedChange={setReplaceExisting} /><Label htmlFor="replace-player-roster" className="text-sm">Replace current season roster</Label></div></div>
@@ -538,6 +563,61 @@ function PlayerRetentionPlanner({ teams, refreshKey }) {
       </div>}
     </section>
   );
+}
+
+function PlayerReviewWorkspace({ teams }) {
+  const [players, setPlayers] = useState([]);
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const load = () => apiList('players').then(setPlayers).catch((error) => toast.error(error.message)).finally(() => setLoading(false));
+  useEffect(() => { load(); }, []);
+
+  const pendingPlayers = players.filter((player) => player.review_status === 'pending');
+  const filteredPlayers = pendingPlayers.filter((player) => `${player.name} ${player.category || ''} ${player.role || ''} ${player.country || ''} ${player.review_source_team || ''}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const groups = new Map();
+  filteredPlayers.forEach((player) => {
+    const currentTeam = teams.find((team) => team.id === player.team_id);
+    const groupName = player.review_source_team || currentTeam?.name || 'Unassigned / Auction pool';
+    if (!groups.has(groupName)) groups.set(groupName, []);
+    groups.get(groupName).push(player);
+  });
+
+  const saveReview = async (player, action, teamId) => {
+    try {
+      await api('POST', 'admin/players/review', { player_id: player.id, action, team_id: teamId || null });
+      toast.success(`${player.name}: ${action === 'retain' ? 'retained' : action === 'auction' ? 'sent to auction' : 'marked overseas'}`);
+      setPlayers((current) => current.filter((item) => item.id !== player.id));
+    } catch (error) { toast.error(error.message); }
+  };
+
+  return (
+    <div>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4"><div><h1 className="font-display text-3xl uppercase mb-1">Player Review</h1><p className="text-muted-foreground">Review copied players before they appear in this season’s public roster or auction. Overseas players skip bidding and may be left unassigned.</p></div><label className="relative block w-full md:max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search players or previous team" className="pl-9" /></label></div>
+      {loading ? <Card className="glass p-6 text-sm text-muted-foreground">Loading player review queue…</Card> : !pendingPlayers.length ? <Card className="glass p-8 text-center"><ListChecks className="mx-auto mb-3 h-6 w-6 text-primary" /><p className="font-display text-lg uppercase">Review queue is clear</p><p className="mt-1 text-sm text-muted-foreground">Copy players from a previous season to review them here.</p></Card> : !filteredPlayers.length ? <Card className="glass p-8 text-center text-sm text-muted-foreground">No players match that search.</Card> : <div className="space-y-4">
+        {[...groups.entries()].map(([groupName, groupPlayers]) => <Card key={groupName} className="glass overflow-hidden"><div className="flex items-center justify-between border-b border-white/10 px-4 py-3"><div className="flex items-center gap-3">{teams.find((team) => team.name === groupName) && <TeamBadge team={teams.find((team) => team.name === groupName)} size={34} />}<div><h2 className="font-display text-lg uppercase">{groupName}</h2><p className="text-xs text-muted-foreground">Previous season team · {groupPlayers.length} awaiting review</p></div></div><Badge variant="outline" className="border-amber-500/30 text-amber-600">Pending</Badge></div><div className="divide-y divide-white/10">{groupPlayers.map((player) => <PlayerReviewRow key={player.id} player={player} teams={teams} onSave={saveReview} />)}</div></Card>)}
+      </div>}
+    </div>
+  );
+}
+
+function PlayerReviewRow({ player, teams, onSave }) {
+  const currentTeamId = player.team_id && teams.some((team) => team.id === player.team_id) ? player.team_id : '';
+  const [action, setAction] = useState(currentTeamId ? 'retain' : 'auction');
+  const [teamId, setTeamId] = useState(currentTeamId);
+  const [busy, setBusy] = useState(false);
+  const review = async () => {
+    if (action === 'retain' && !teamId) return toast.error('Choose a team to retain this player');
+    setBusy(true);
+    await onSave(player, action, teamId);
+    setBusy(false);
+  };
+
+  return <div className="grid gap-3 px-4 py-3 lg:grid-cols-[minmax(0,1fr)_170px_minmax(190px,0.8fr)_auto] lg:items-center">
+    <div className="flex min-w-0 items-center gap-3">{player.photo_url ? <img src={player.photo_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" /> : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 font-display font-bold text-primary">{player.name.split(' ').map((part) => part[0]).slice(0, 2).join('')}</span>}<div className="min-w-0"><Link href={`/players/${player.id}`} className="block truncate font-medium hover:text-primary">{player.name}</Link><p className="truncate text-xs text-muted-foreground">{player.category || player.role || 'Player'}{player.country ? ` · ${player.country}` : ''}</p></div></div>
+    <Select value={action} onValueChange={setAction}><SelectTrigger className="glass border-white/10"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="retain">Retain in league</SelectItem><SelectItem value="auction">Release to auction</SelectItem><SelectItem value="overseas">Overseas player</SelectItem></SelectContent></Select>
+    {action === 'retain' || action === 'overseas' ? <Select value={teamId || 'none'} onValueChange={(value) => setTeamId(value === 'none' ? '' : value)}><SelectTrigger className="glass border-white/10"><SelectValue placeholder={action === 'retain' ? 'Select team' : 'No team assigned'} /></SelectTrigger><SelectContent>{action === 'overseas' && <SelectItem value="none">No team assigned</SelectItem>}{teams.map((team) => <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>)}</SelectContent></Select> : <p className="text-xs text-muted-foreground">Player enters the auction pool.</p>}
+    <Button disabled={busy} onClick={review} size="sm" className="font-semibold"><Check className="mr-1 h-4 w-4" />{busy ? 'Saving…' : 'Apply'}</Button>
+  </div>;
 }
 
 function TeamsWorkspace({ teams, onChanged }) {
@@ -1012,7 +1092,7 @@ function Auction({ teams }) {
     try {
       const [states, pls] = await Promise.all([apiList('auction_state'), apiList('players')]);
       setState(states[0] || { id: 1, status: 'idle', increment: 20 });
-      setPlayers((pls || []).filter((p) => !p.team_id));
+      setPlayers((pls || []).filter((p) => !p.team_id && p.review_status === 'approved' && !p.is_overseas));
     } catch (e) { setState({ id: 1, status: 'idle', increment: 20 }); }
   };
   useEffect(() => { load(); }, []);

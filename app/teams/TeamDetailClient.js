@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, BadgeCheck, CalendarDays, MapPin, Shield, Trophy, Users } from 'lucide-react';
@@ -20,15 +20,6 @@ export default function TeamDetailClient({ initial }) {
   const completed = teamMatches.filter((match) => match.status === 'completed');
   const nextMatch = teamMatches.filter((match) => match.status === 'upcoming').sort((a, b) => new Date(a.start_time) - new Date(b.start_time))[0];
   const seasonColor = hexToHsl(initial.settings?.accent_color);
-  const matchOutcome = (match) => {
-    if (match.status !== 'completed') return match.status;
-    if (/no result|abandon|cancel/i.test(match.result || '')) return 'no result';
-    if (match.winner_team) return match.winner_team === team.id ? 'won' : 'lost';
-    const teamRuns = match.team_a === team.id ? Number(match.team_a_runs || 0) : Number(match.team_b_runs || 0);
-    const opponentRuns = match.team_a === team.id ? Number(match.team_b_runs || 0) : Number(match.team_a_runs || 0);
-    if (teamRuns === opponentRuns) return 'draw';
-    return teamRuns > opponentRuns ? 'won' : 'lost';
-  };
   const form = completed.slice(0, 5).reverse();
 
   return (
@@ -81,11 +72,15 @@ export default function TeamDetailClient({ initial }) {
               ) : (
                 <div className="mt-6 space-y-3">
                   {teamMatches.map((match) => {
-                    const outcome = matchOutcome(match);
                     const hasScore = [match.team_a_runs, match.team_a_wickets, match.team_b_runs, match.team_b_wickets].some((value) => Number(value || 0) > 0);
                     const winnerName = initial.teams.find((other) => other.id === match.winner_team)?.name;
+                    const opponentTeam = initial.teams.find((other) => other.id === (match.team_a === team.id ? match.team_b : match.team_a)) || null;
                     const summary = match.status === 'completed' && !hasScore ? match.result || (winnerName ? `${winnerName} won` : 'Completed') : match.status === 'completed' ? `${match.team_a_runs}/${match.team_a_wickets} · ${match.team_b_runs}/${match.team_b_wickets}` : match.status;
-                    return <Card key={match.id} className="team-detail__match-row p-4"><div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-3"><span className={`team-detail__outcome team-detail__outcome--${outcome.replace(/\s+/g, '-')}`}>{outcome === 'upcoming' ? 'UP' : outcome === 'no result' ? 'NR' : outcome[0]?.toUpperCase()}</span><div><div className="font-display text-lg uppercase">{team.short_name} <span className="text-muted-foreground">vs</span> {initial.teams.find((other) => other.id === (match.team_a === team.id ? match.team_b : match.team_a))?.short_name || 'TBD'}</div><div className="text-xs text-muted-foreground">{fmtDate(match.start_time)} · {fmtTime(match.start_time)} · {match.venue || 'Venue TBA'}{match.stage ? ` · ${match.stage}` : ''}</div></div></div><div className="text-right"><div className="font-num text-xl">{summary}</div><div className="max-w-56 text-xs text-muted-foreground">{match.result || ''}</div></div></div></Card>;
+                    return <Card key={match.id} className="team-detail__match-row p-4"><div className="team-detail__match-layout">
+                      <div className="team-detail__match-team"><TeamBadge team={team} size={42} /><div className="min-w-0"><div className="text-[10px] uppercase tracking-wider text-muted-foreground">{team.short_name}</div><div className="truncate font-display text-base uppercase">{team.name}</div></div></div>
+                      <div className="team-detail__match-center">{match.status === 'upcoming' ? <div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Kickoff in</div><MatchCountdown target={match.start_time} /></div> : match.status === 'live' ? <LiveDot /> : <div className="font-num text-lg">{hasScore ? summary : winnerName || summary}</div>}<div className="mt-1 text-[11px] text-muted-foreground">{fmtDate(match.start_time)} · {fmtTime(match.start_time)}</div>{(match.stage || match.venue) && <div className="mt-1 max-w-52 truncate text-[10px] uppercase tracking-wide text-muted-foreground">{[match.stage, match.venue].filter(Boolean).join(' · ')}</div>}{match.status === 'completed' && match.result && <div className="mt-1 max-w-56 text-[10px] text-muted-foreground">{match.result}</div>}</div>
+                      <div className="team-detail__match-team team-detail__match-team--opponent"><div className="min-w-0 text-right"><div className="text-[10px] uppercase tracking-wider text-muted-foreground">{opponentTeam?.short_name || 'TBD'}</div><div className="truncate font-display text-base uppercase">{opponentTeam?.name || 'Opponent'}</div></div><TeamBadge team={opponentTeam} size={42} /></div>
+                    </div></Card>;
                   })}
                   {!teamMatches.length && <Card className="glass p-8 text-center text-muted-foreground">Fixtures will appear here once the schedule is published.</Card>}
                 </div>
@@ -112,4 +107,20 @@ function Leader({ title, player, value }) {
 
 function DetailField({ label, value }) {
   return <div className="flex justify-between gap-4"><dt className="text-muted-foreground">{label}</dt><dd className="text-right font-medium">{value || '—'}</dd></div>;
+}
+
+function MatchCountdown({ target }) {
+  const [now, setNow] = useState(null);
+  useEffect(() => {
+    const update = () => setNow(Date.now());
+    update();
+    const interval = setInterval(update, 60000);
+    return () => clearInterval(interval);
+  }, []);
+  if (now === null) return <span className="font-num text-lg text-primary">--d --h</span>;
+  const remaining = new Date(target).getTime() - now;
+  if (remaining <= 0) return <span className="font-display text-sm uppercase text-primary">Starting now</span>;
+  const days = Math.floor(remaining / 86400000);
+  const hours = Math.floor((remaining % 86400000) / 3600000);
+  return <span className="font-num text-xl text-primary">{days}d {hours}h</span>;
 }

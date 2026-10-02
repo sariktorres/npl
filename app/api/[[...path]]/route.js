@@ -26,10 +26,9 @@ async function requireAdmin(request) {
   const { data, error } = await admin.auth.getUser(token);
   if (error || !data?.user) return null;
   const user = data.user;
-  if (user.email === process.env.ADMIN_EMAIL) return user;
-  const { data: prof } = await admin.from('profiles').select('role').eq('id', user.id).single();
-  if (prof?.role === 'admin') return user;
-  return null;
+  const { data: profile, error: profileError } = await admin.from('profiles').select('role').eq('id', user.id).maybeSingle();
+  if (profileError || profile?.role !== 'admin') return null;
+  return user;
 }
 
 async function getActiveSeason(admin) {
@@ -105,8 +104,12 @@ export async function GET(request, { params }) {
 export async function POST(request, { params }) {
   const path = (await params)?.path || [];
   try {
-    if (path[0] === 'seed') { const force = new URL(request.url).searchParams.get('force') === '1'; return json(await seed(force)); }
-    if (path[0] === 'create-admin') return json(await ensureAdminUser());
+    if (path[0] === 'seed') {
+      const user = await requireAdmin(request);
+      if (!user) return json({ error: 'Unauthorized' }, 401);
+      const force = new URL(request.url).searchParams.get('force') === '1';
+      return json(await seed(force));
+    }
 
     if (path[0] === 'auth' && path[1] === 'login') {
       const { email, password } = await request.json();
@@ -118,11 +121,9 @@ export async function POST(request, { params }) {
       const tok = await r.json();
       if (!r.ok) return json({ error: tok.error_description || tok.msg || 'Invalid credentials' }, 401);
       const admin = getAdminClient();
-      let role = 'viewer';
-      if (tok.user?.email === process.env.ADMIN_EMAIL) role = 'admin';
-      else { const { data: prof } = await admin.from('profiles').select('role').eq('id', tok.user?.id).single(); role = prof?.role || 'viewer'; }
-      if (role !== 'admin') return json({ error: 'Not an admin account' }, 403);
-      return json({ access_token: tok.access_token, refresh_token: tok.refresh_token, user: { id: tok.user?.id, email: tok.user?.email }, role });
+      const { data: profile, error: profileError } = await admin.from('profiles').select('role').eq('id', tok.user?.id).maybeSingle();
+      if (profileError || profile?.role !== 'admin') return json({ error: 'This Supabase account does not have the admin role' }, 403);
+      return json({ access_token: tok.access_token, refresh_token: tok.refresh_token, user: { id: tok.user?.id, email: tok.user?.email }, role: profile.role });
     }
 
     if (path[0] === 'public' && path[1] === 'register') {
@@ -146,7 +147,7 @@ export async function POST(request, { params }) {
       const admin = getAdminClient();
       const season = await getActiveSeason(admin);
       const [player, team] = await Promise.all([
-        admin.from('players').select('id').eq('id', player_id).eq('season_id', season.id).maybeSingle(),
+        admin.from('players').select('id').eq('id', player_id).eq('season_id', season.id).eq('review_status', 'approved').eq('is_overseas', false).is('team_id', null).in('sold_status', ['available','current']).maybeSingle(),
         admin.from('teams').select('id').eq('id', team_id).eq('season_id', season.id).maybeSingle(),
       ]);
       if (!player.data || !team.data) return json({ error: 'Player or team is not part of the active season' }, 400);
@@ -284,6 +285,10 @@ export async function POST(request, { params }) {
             sold_price: soldNpr === null ? null : soldNpr / 100000,
             sold_status: soldNpr ? 'sold' : 'available',
             stats: {},
+            review_status: 'approved',
+            review_source_team: null,
+            review_action: 'retain',
+            is_overseas: false,
             season_id: season.id,
           };
           if (baseNpr !== null) player.base_price = baseNpr / 100000;
@@ -308,6 +313,37 @@ export async function POST(request, { params }) {
         }
         return json({ imported: inserted?.length || 0, removed: oldIds.length });
       }
+      if (path[1] === 'players' && path[2] === 'review') {
+        const body = await request.json();
+        const allowedActions = new Set(['retain','auction','overseas']);
+        if (!body.player_id || !allowedActions.has(body.action)) return json({ error: 'Choose a player and valid review action' }, 400);
+        const season = await getActiveSeason(admin);
+        const { data: player, error: playerError } = await admin.from('players').select('id,team_id,review_status').eq('id', body.player_id).eq('season_id', season.id).maybeSingle();
+        if (playerError) return json({ error: playerError.message }, 400);
+        if (!player || player.review_status !== 'pending') return json({ error: 'Player is not awaiting review in the active season' }, 404);
+
+        const teamId = body.team_id || null;
+        if (body.action === 'retain' && !teamId) return json({ error: 'Choose a team to retain this player' }, 400);
+        if (teamId) {
+          const { data: team, error: teamError } = await admin.from('teams').select('id').eq('id', teamId).eq('season_id', season.id).maybeSingle();
+          if (teamError) return json({ error: teamError.message }, 400);
+          if (!team) return json({ error: 'Selected team is not part of the active season' }, 400);
+        }
+
+        const overseas = body.action === 'overseas';
+        const updates = {
+          review_status: 'approved',
+          review_action: body.action,
+          team_id: body.action === 'auction' ? null : teamId,
+          is_overseas: overseas,
+          sold_status: body.action === 'auction' ? 'available' : teamId ? 'sold' : 'available',
+          sold_price: null,
+        };
+        if (overseas) updates.base_price = null;
+        const { data, error } = await admin.from('players').update(updates).eq('id', player.id).eq('season_id', season.id).select().single();
+        if (error) return json({ error: error.message }, 400);
+        return json({ data });
+      }
       if (path[1] === 'players' && path[2] === 'copy-from-season') {
         const body = await request.json();
         if (!body.source_season_id) return json({ error: 'Choose a source season' }, 400);
@@ -320,7 +356,7 @@ export async function POST(request, { params }) {
         const [sourceTeamsResult, targetTeamsResult, sourcePlayersResult, targetPlayersResult] = await Promise.all([
           admin.from('teams').select('id,name,short_name').eq('season_id', sourceSeason.id),
           admin.from('teams').select('id,name,short_name').eq('season_id', targetSeason.id),
-          admin.from('players').select('*').eq('season_id', sourceSeason.id).order('order_index'),
+          admin.from('players').select('*').eq('season_id', sourceSeason.id).eq('review_status', 'approved').order('order_index'),
           admin.from('players').select('name,team_id').eq('season_id', targetSeason.id),
         ]);
         for (const result of [sourceTeamsResult, targetTeamsResult, sourcePlayersResult, targetPlayersResult]) {
@@ -353,6 +389,10 @@ export async function POST(request, { params }) {
           copies.push({
             ...copy,
             team_id: targetTeam?.id || null,
+            review_status: 'pending',
+            review_source_team: sourceTeam?.name || 'Unassigned',
+            review_action: null,
+            is_overseas: false,
             stats: {},
             sold_status: targetTeam ? 'sold' : 'available',
             sold_price: null,
@@ -367,6 +407,37 @@ export async function POST(request, { params }) {
         const { data: inserted, error: insertError } = await admin.from('players').insert(copies).select('id');
         if (insertError) return json({ error: insertError.message }, 400);
         return json({ imported: inserted?.length || 0, source_season: sourceSeason.name });
+      }
+      if (path[1] === 'players' && path[2] === 'review') {
+        const body = await request.json();
+        if (!body.player_id || !['retain','auction','overseas'].includes(body.action)) return json({ error: 'Choose a player and a valid review action' }, 400);
+        const season = await getActiveSeason(admin);
+        const { data: player, error: playerError } = await admin.from('players').select('id,team_id,review_status').eq('id', body.player_id).eq('season_id', season.id).maybeSingle();
+        if (playerError) return json({ error: playerError.message }, 400);
+        if (!player || player.review_status !== 'pending') return json({ error: 'This player is not awaiting review in the active season' }, 404);
+
+        const teamId = body.team_id || null;
+        if (body.action === 'retain' && !teamId) return json({ error: 'Choose an active team to retain this player' }, 400);
+        if (teamId) {
+          const { data: targetTeam, error: teamError } = await admin.from('teams').select('id').eq('id', teamId).eq('season_id', season.id).maybeSingle();
+          if (teamError) return json({ error: teamError.message }, 400);
+          if (!targetTeam) return json({ error: 'Selected team is not part of the active season' }, 400);
+        }
+
+        const updates = {
+          review_status: 'approved',
+          review_action: body.action,
+          retain_next_season: true,
+          next_team_id: null,
+          team_id: body.action === 'auction' ? null : teamId,
+          is_overseas: body.action === 'overseas',
+          sold_status: body.action === 'auction' ? 'available' : teamId ? 'sold' : 'available',
+        };
+        if (body.action !== 'retain' || teamId !== player.team_id) updates.sold_price = null;
+        if (body.action === 'overseas') updates.base_price = null;
+        const { data, error } = await admin.from('players').update(updates).eq('id', player.id).eq('season_id', season.id).select().single();
+        if (error) return json({ error: error.message }, 400);
+        return json({ data });
       }
       if (path[1] === 'matches' && path[2] === 'import') {
         const body = await request.json();
@@ -513,17 +584,21 @@ export async function POST(request, { params }) {
             if (error) return abortCreate(error);
             teamIds.set(team.id, data.id);
           }
-          const { data: sourcePlayers, error: playersError } = await admin.from('players').select('*').eq('season_id', source.id).order('order_index');
+          const { data: sourcePlayers, error: playersError } = await admin.from('players').select('*').eq('season_id', source.id).eq('review_status', 'approved').order('order_index');
           if (playersError) return abortCreate(playersError);
-          const retainedPlayers = (sourcePlayers || []).filter((player) => player.retain_next_season !== false);
-          if (retainedPlayers.length) {
-            const playerCopies = retainedPlayers.map((player) => {
+          if (sourcePlayers?.length) {
+            const sourceTeamById = new Map((sourceTeams || []).map((team) => [team.id, team]));
+            const playerCopies = sourcePlayers.map((player) => {
               const copy = withoutSeasonIdentity(player);
               const sourceTeamId = player.next_team_id || player.team_id;
               const targetTeamId = sourceTeamId ? teamIds.get(sourceTeamId) || null : null;
               return {
                 ...copy,
                 team_id: targetTeamId,
+                review_status: 'pending',
+                review_source_team: sourceTeamById.get(player.team_id)?.name || 'Unassigned',
+                review_action: null,
+                is_overseas: false,
                 next_team_id: null,
                 retain_next_season: true,
                 stats: {},
@@ -579,6 +654,15 @@ export async function DELETE(request, { params }) {
     if (path[0] === 'admin') {
       const user = await requireAdmin(request);
       if (!user) return json({ error: 'Unauthorized' }, 401);
+      if (path[1] === 'players' && path[2] === 'season') {
+        const admin = getAdminClient();
+        const season = await getActiveSeason(admin);
+        const { count, error: countError } = await admin.from('players').select('id', { count: 'exact', head: true }).eq('season_id', season.id);
+        if (countError) return json({ error: countError.message }, 400);
+        const { error } = await admin.from('players').delete().eq('season_id', season.id);
+        if (error) return json({ error: error.message }, 400);
+        return json({ deleted: count || 0, season_id: season.id });
+      }
       const table = path[1];
       if (!ALLOWED.includes(table)) return json({ error: 'Invalid table' }, 400);
       const id = new URL(request.url).searchParams.get('id');
@@ -597,25 +681,6 @@ export async function DELETE(request, { params }) {
   } catch (e) { return json({ error: e.message }, 500); }
 }
 
-async function ensureAdminUser() {
-  const admin = getAdminClient();
-  const email = process.env.ADMIN_EMAIL;
-  const password = process.env.ADMIN_PASSWORD;
-  let userId = null;
-  const { data: list } = await admin.auth.admin.listUsers();
-  const existing = list?.users?.find((u) => u.email === email);
-  if (existing) {
-    userId = existing.id;
-    await admin.auth.admin.updateUserById(userId, { password });
-  } else {
-    const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: 'Administrator' } });
-    if (error) return { error: error.message };
-    userId = data.user.id;
-  }
-  await admin.from('profiles').upsert({ id: userId, email, full_name: 'Administrator', role: 'admin' });
-  return { ok: true, email, userId };
-}
-
 // ---------------------------------------------------------------
 //  SEED DEMO DATA
 // ---------------------------------------------------------------
@@ -627,7 +692,6 @@ async function seed(force) {
   try { await admin.storage.createBucket('media', { public: true }); } catch (e) {}
   const { count } = await admin.from('teams').select('id', { count: 'exact', head: true });
   if (count && count > 0 && !force) {
-    await ensureAdminUser();
     return { ok: true, skipped: true, message: 'Already seeded. Use ?force=1 to reset.' };
   }
   if (force) {
@@ -779,6 +843,5 @@ async function seed(force) {
   ].map((s) => ({ ...s, visible: true, published: true, animation: 'fade' }));
   await admin.from('sections').insert(sections.map((section) => ({ ...section, season_id: activeSeason.id })));
 
-  await ensureAdminUser();
   return { ok: true, seeded: true, teams: teams.length, players: players.length + pool.length, matches: matchRows.length };
 }
